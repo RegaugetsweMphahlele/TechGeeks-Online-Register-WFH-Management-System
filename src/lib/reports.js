@@ -15,7 +15,10 @@ export const ATTENDANCE_COLUMNS = [
   { header: 'Work mode', value: (r) => MODE[r.work_mode] },
   { header: 'WFH approved', value: (r) => (r.work_mode === 'wfh' ? (r.wfh_approved ? 'Yes' : 'No') : '') },
   { header: 'Attendance status', value: (r) => registerStatus(r).label },
-  { header: 'Location', value: (r) => r.location_note },
+  { header: 'Location note', value: (r) => r.location_note },
+  { header: 'Detected address', value: (r) => r.location_address },
+  { header: 'Latitude', value: (r) => r.location_latitude },
+  { header: 'Longitude', value: (r) => r.location_longitude },
 ]
 
 export const WFH_COLUMNS = [
@@ -30,6 +33,9 @@ export const WFH_COLUMNS = [
   { header: 'Decision date', value: (r) => (r.reviewed_at ? formatDateTime(r.reviewed_at) : '') },
   { header: 'Decision-maker', value: (r) => r.reviewer_name ?? '' },
   { header: 'Decision comment', value: (r) => r.decision_comment ?? '' },
+  { header: 'Location address', value: (r) => r.location_address },
+  { header: 'Latitude', value: (r) => r.location_latitude },
+  { header: 'Longitude', value: (r) => r.location_longitude },
 ]
 
 export function reportFilename(kind, { from, to } = {}) {

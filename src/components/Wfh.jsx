@@ -5,12 +5,14 @@ import { friendlyError } from '../lib/errors.js'
 import { addDays, formatDateTime, formatDayLong, formatFullDate, sastToday } from '../lib/time.js'
 import { validateWfh, WFH_REASONS } from '../lib/validation.js'
 import { CandidateCell } from './AttendanceTable.jsx'
+import LocationCapture from './LocationCapture.jsx'
 import { useToast } from './Toast.jsx'
 import { StatusBadge } from './ui/Badge.jsx'
 import Button from './ui/Button.jsx'
 import { Alert } from './ui/Feedback.jsx'
 import { Input, Select, Textarea } from './ui/Field.jsx'
 import Modal, { ModalIcon } from './ui/Modal.jsx'
+import LocationMap from './LocationMap.jsx'
 import { Table } from './ui/Table.jsx'
 
 export function WfhTable({ rows, showCandidate, onOpen, actionLabel = 'View' }) {
@@ -42,6 +44,16 @@ export function WfhDetails({ req, showCandidate }) {
       <Row label="Requested date">{formatFullDate(req.requested_date)}</Row>
       <Row label="Reason">{req.reason}</Row>
       {req.details && <Row label="Details"><span className="whitespace-pre-wrap">{req.details}</span></Row>}
+      <Row label="Location">
+        {req.location_latitude == null ? 'Not shared' : (
+          <div className="flex w-full flex-col gap-2">
+            <span>{req.location_address || 'Address unavailable'}</span>
+            <span className="text-xs text-muted">{Number(req.location_latitude).toFixed(6)}, {Number(req.location_longitude).toFixed(6)}</span>
+            <LocationMap latitude={req.location_latitude} longitude={req.location_longitude}
+              label={req.location_address || 'WFH request location'} />
+          </div>
+        )}
+      </Row>
       <Row label="Submitted">{formatDateTime(req.submitted_at)}</Row>
       <Row label="Status"><StatusBadge status={req.status} /></Row>
       {req.reviewed_at && <Row label="Decided">{formatDateTime(req.reviewed_at)}{req.reviewer_name && ` by ${req.reviewer_name}`}</Row>}
@@ -55,12 +67,13 @@ export function WfhRequestModal({ open, onClose, onSubmitted }) {
   const today = sastToday()
   const empty = { date: '', reason: '', details: '' }
   const [form, setForm] = useState(empty)
+  const [deviceLocation, setDeviceLocation] = useState(null)
   const [errors, setErrors] = useState({})
   const [error, setError] = useState(null)
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState(null)
 
-  const close = () => { setForm(empty); setErrors({}); setError(null); setDone(null); onClose() }
+  const close = () => { setForm(empty); setDeviceLocation(null); setErrors({}); setError(null); setDone(null); onClose() }
   const set = (k) => (e) => { setForm((f) => ({ ...f, [k]: e.target.value })); setErrors((x) => ({ ...x, [k]: undefined })) }
 
   async function submit(e) {
@@ -71,7 +84,7 @@ export function WfhRequestModal({ open, onClose, onSubmitted }) {
     setBusy(true)
     setError(null)
     try {
-      const req = await submitWfh(form)
+      const req = await submitWfh({ ...form, deviceLocation })
       setDone(req)
       toast('success', 'WFH request submitted', 'Your Tech Champion has been notified.')
       onSubmitted?.(req)
@@ -102,6 +115,7 @@ export function WfhRequestModal({ open, onClose, onSubmitted }) {
         </Select>
         <Textarea label="Additional details" required={form.reason === 'Other'} maxLength={1000} value={form.details}
           onChange={set('details')} error={errors.details} placeholder="Anything your Tech Champion should know" />
+        <LocationCapture location={deviceLocation} onChange={setDeviceLocation} />
         <div className="flex gap-3 [&>*]:flex-1">
           <Button variant="secondary" onClick={close}>Cancel</Button>
           <Button type="submit" icon={Send} loading={busy}>Submit request</Button>

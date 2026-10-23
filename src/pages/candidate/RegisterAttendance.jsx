@@ -5,6 +5,8 @@ import { getWfhForDate } from '../../api/wfh.js'
 import { useAuth } from '../../auth/AuthProvider.jsx'
 import { PageHeader } from '../../components/layout/AppLayout.jsx'
 import { useToast } from '../../components/Toast.jsx'
+import LocationCapture from '../../components/LocationCapture.jsx'
+import LocationMap from '../../components/LocationMap.jsx'
 import Badge, { ModeBadge } from '../../components/ui/Badge.jsx'
 import Button from '../../components/ui/Button.jsx'
 import { Card } from '../../components/ui/Card.jsx'
@@ -31,6 +33,10 @@ function Summary({ rec }) {
       <Item label="Check out">{formatTime(rec.check_out_at)}</Item>
       {rec.check_out_at && <Item label="Hours">{formatHours(rec.hours)}</Item>}
       <Item label="Location">{rec.location_note ?? '—'}</Item>
+      <Item label="Detected address">{rec.location_address ?? 'Address unavailable'}</Item>
+      {rec.location_latitude != null && <Item label="Coordinates">{Number(rec.location_latitude).toFixed(6)}, {Number(rec.location_longitude).toFixed(6)}</Item>}
+      {rec.location_latitude != null && <div className="py-3"><LocationMap latitude={rec.location_latitude} longitude={rec.location_longitude}
+        label={rec.location_address || 'Attendance location'} /></div>}
       <Item label="Register"><Badge tone={s.tone}>{s.label}</Badge></Item>
     </dl>
   )
@@ -45,6 +51,7 @@ export default function RegisterAttendance() {
     [profile.id, today],
   )
   const [form, setForm] = useState({ workMode: '', location: '', notes: '' })
+  const [deviceLocation, setDeviceLocation] = useState(null)
   const [errors, setErrors] = useState({})
   const [busy, setBusy] = useState(false)
   const [actionError, setActionError] = useState(null)
@@ -62,12 +69,13 @@ export default function RegisterAttendance() {
     const v = {}
     if (!form.workMode) v.workMode = 'Select your attendance status'
     if (!form.location.trim()) v.location = 'Tell us where you are working from'
+    if (!deviceLocation) v.deviceLocation = 'Get your current location before checking in'
     setErrors(v)
     if (Object.keys(v).length) return
     setBusy(true)
     setActionError(null)
     try {
-      await checkIn(form)
+      await checkIn({ ...form, deviceLocation })
       const rec = await getToday(profile.id) // re-read through the view for hours/approval flags
       setResult({ kind: 'in', rec })
       toast('success', 'Checked in', `Registered at ${formatTime(rec.check_in_at)}.`)
@@ -127,6 +135,8 @@ export default function RegisterAttendance() {
                       </Alert>)}
                   <Input label="Location" required value={form.location} onChange={set('location')} error={errors.location} maxLength={120}
                     placeholder={form.workMode === 'wfh' ? 'e.g. Home – Mitchells Plain' : OFFICE} hint="Self-reported; not location tracking." />
+                  {errors.deviceLocation && <Alert type="error" title={errors.deviceLocation} />}
+                  <LocationCapture location={deviceLocation} onChange={(value) => { setDeviceLocation(value); setErrors((current) => ({ ...current, deviceLocation: undefined })) }} required />
                   <Textarea label="Notes" rows={3} maxLength={500} value={form.notes} onChange={set('notes')} placeholder="Optional" />
                   <Button type="submit" icon={ClipboardCheck} loading={busy} className="self-start">Check in</Button>
                 </form>

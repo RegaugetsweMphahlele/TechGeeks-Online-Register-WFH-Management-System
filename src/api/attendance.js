@@ -4,8 +4,15 @@ import { db, fetchAll, run, searchTerm } from './client.js'
 export const getToday = (candidateId) =>
   run(db().from('attendance_overview').select('*').eq('candidate_id', candidateId).eq('attendance_date', sastToday()).maybeSingle())
 
-export const checkIn = ({ workMode, location, notes }) =>
-  run(db().rpc('check_in', { p_work_mode: workMode, p_location: location || null, p_notes: notes || null }).single())
+export const checkIn = ({ workMode, location, notes, deviceLocation }) =>
+  run(db().rpc('check_in', {
+    p_work_mode: workMode,
+    p_location: location || null,
+    p_notes: notes || null,
+    p_latitude: deviceLocation?.latitude ?? null,
+    p_longitude: deviceLocation?.longitude ?? null,
+    p_address: deviceLocation?.address || null,
+  }).single())
 
 export const checkOut = () => run(db().rpc('check_out').single())
 

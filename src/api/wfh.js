@@ -1,7 +1,14 @@
 import { db, fetchAll, run, searchTerm } from './client.js'
 
-export const submitWfh = ({ date, reason, details }) =>
-  run(db().rpc('submit_wfh_request', { p_date: date, p_reason: reason, p_details: details || null }).single())
+export const submitWfh = ({ date, reason, details, deviceLocation }) =>
+  run(db().rpc('submit_wfh_request', {
+    p_date: date,
+    p_reason: reason,
+    p_details: details || null,
+    p_latitude: deviceLocation?.latitude ?? null,
+    p_longitude: deviceLocation?.longitude ?? null,
+    p_address: deviceLocation?.address || null,
+  }).single())
 
 export const decideWfh = (id, decision, comment) =>
   run(db().rpc('decide_wfh_request', { p_id: id, p_decision: decision, p_comment: comment || null }).single())

@@ -4,6 +4,7 @@ import { toCsv } from './csv.js'
 import { ATTENDANCE_COLUMNS, reportFilename, WFH_COLUMNS } from './reports.js'
 import { addDays, formatTime, hoursBetween, isWeekend, monthBounds, sastToday, weekStart } from './time.js'
 import { validateLogin, validateProfile, validateRejection, validateWfh } from './validation.js'
+import { geolocationErrorMessage, getCurrentLocation } from './location.js'
 
 describe('time (Africa/Johannesburg)', () => {
   it('uses SAST for today regardless of UTC date', () => {
@@ -36,6 +37,38 @@ describe('registerStatus', () => {
     expect(registerStatus(row('2026-10-20T06:41:00Z'), today).label).toBe('Late') // 08:41
   })
   it('sums hours ignoring open records', () => expect(sumHours([{ hours: 8.6 }, { hours: null }, { hours: '7.4' }])).toBe(16))
+})
+
+describe('device location', () => {
+  const position = { coords: { latitude: -33.9249, longitude: 18.4241 } }
+  const geolocation = { getCurrentPosition: (success) => success(position) }
+
+  it('captures coordinates and formats South African address parts', async () => {
+    const fetcher = async () => ({ ok: true, json: async () => ({ address: {
+      house_number: '12', road: 'Long Street', suburb: 'City Centre', city: 'Cape Town', state: 'Western Cape',
+    } }) })
+    await expect(getCurrentLocation({ geolocation, fetcher })).resolves.toEqual({
+      latitude: -33.9249, longitude: 18.4241, address: '12 Long Street, City Centre, Cape Town, Western Cape',
+    })
+  })
+
+  it('keeps coordinates when reverse geocoding fails', async () => {
+    await expect(getCurrentLocation({ geolocation, fetcher: async () => { throw new Error('offline') } }))
+      .resolves.toEqual({ latitude: -33.9249, longitude: 18.4241, address: null })
+  })
+
+  it('reports permission, unavailable, and timeout failures clearly', async () => {
+    for (const [code, phrase] of [[1, 'permission was denied'], [2, 'could not determine'], [3, 'timed out']]) {
+      const denied = { getCurrentPosition: (success, failure) => failure({ code }) }
+      await expect(getCurrentLocation({ geolocation: denied })).rejects.toThrow(phrase)
+      expect(geolocationErrorMessage({ code })).toContain(phrase)
+    }
+  })
+
+  it('rejects invalid device coordinates', async () => {
+    const invalid = { getCurrentPosition: (success) => success({ coords: { latitude: 91, longitude: 18 } }) }
+    await expect(getCurrentLocation({ geolocation: invalid })).rejects.toThrow('invalid coordinates')
+  })
 })
 
 describe('validation', () => {
@@ -71,8 +104,8 @@ describe('CSV reports', () => {
     const csv = toCsv([{ full_name: 'Lerato Dlamini', candidate_identifier: 'CAP-1', attendance_date: '2026-10-20',
       check_in_at: '2026-10-20T06:02:00Z', check_out_at: '2026-10-20T14:32:00Z', hours: 8.5, work_mode: 'wfh', wfh_approved: true }],
     ATTENDANCE_COLUMNS).split('\r\n')
-    expect(csv[0]).toBe('Candidate name,Candidate ID,Cohort,Date,Check-in time,Check-out time,Working hours,Work mode,WFH approved,Attendance status,Location')
-    expect(csv[1]).toBe('Lerato Dlamini,CAP-1,,2026-10-20,08:02,16:32,8.50,Working From Home,Yes,Submitted,')
+    expect(csv[0]).toBe('Candidate name,Candidate ID,Cohort,Date,Check-in time,Check-out time,Working hours,Work mode,WFH approved,Attendance status,Location note,Detected address,Latitude,Longitude')
+    expect(csv[1]).toBe('Lerato Dlamini,CAP-1,,2026-10-20,08:02,16:32,8.50,Working From Home,Yes,Submitted,,,,')
   })
   it('WFH report includes decision columns', () => {
     expect(WFH_COLUMNS.map((c) => c.header)).toEqual(expect.arrayContaining(['WFH status', 'Decision date', 'Decision-maker']))

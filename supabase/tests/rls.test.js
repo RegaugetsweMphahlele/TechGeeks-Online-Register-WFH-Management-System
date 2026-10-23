@@ -72,10 +72,16 @@ describe('attendance', () => {
     await fails(as(BOB, `select check_out()`), 'Check in before checking out')
   })
   it('check-in works once per day, with server timestamps', async () => {
-    const [r] = await as(ALICE, `select * from check_in('wfh', 'Home – Mitchells Plain')`)
+    await fails(as(ALICE, `select check_in('wfh', 'Home – Mitchells Plain')`), 'Get your current location')
+    const [r] = await as(ALICE, `select * from check_in('wfh', 'Home – Mitchells Plain', null, -34.04, 18.62, 'Mitchells Plain, Cape Town')`)
     expect(r.candidate_id).toBe(ALICE)
+    expect(r.location_latitude).toBe(-34.04)
+    expect(r.location_longitude).toBe(18.62)
+    expect(r.location_address).toBe('Mitchells Plain, Cape Town')
     expect(r.check_out_at).toBeNull()
-    await fails(as(ALICE, `select check_in('office')`), 'already checked in')
+    const [overview] = await as(ALICE, `select location_latitude, location_address from attendance_overview where candidate_id = $1`, [ALICE])
+    expect(overview).toEqual({ location_latitude: -34.04, location_address: 'Mitchells Plain, Cape Town' })
+    await fails(as(ALICE, `select check_in('office', null, null, -34.04, 18.62)`), 'already checked in')
   })
   it('check-out works once', async () => {
     const [r] = await as(ALICE, `select * from check_out()`)
@@ -92,10 +98,17 @@ describe('attendance', () => {
     await fails(as(MENTOR, `select check_in('office')`), 'Only active candidates')
   })
   it('visibility: own rows, assigned mentor only', async () => {
-    await as(BOB, `select check_in('office')`)
+    await as(BOB, `select check_in('office', null, null, -33.92, 18.42)`)
+    const [bobRow] = await as(ALICE, `select * from attendance_records where candidate_id = $1`, [BOB])
+    expect(bobRow).toBeUndefined()
     expect((await as(ALICE, `select candidate_id from attendance_overview`)).map((r) => r.candidate_id)).toEqual([ALICE])
     expect((await as(MENTOR, `select candidate_id from attendance_overview`)).length).toBe(2)
+    expect((await as(MENTOR, `select location_latitude, location_longitude from attendance_records where candidate_id = $1`, [BOB]))[0])
+      .toEqual({ location_latitude: -33.92, location_longitude: 18.42 })
     expect((await as(MENTOR2, `select candidate_id from attendance_overview`)).length).toBe(0)
+  })
+  it('rejects invalid coordinate ranges', async () => {
+    await fails(as(BOB, `select check_in('office', null, null, 91, 18.42)`), 'Location coordinates are invalid')
   })
 })
 
@@ -106,8 +119,10 @@ describe('WFH workflow', () => {
       where extract(isodow from d) < 6 limit 1`)).rows
   })
   it('candidate submits; duplicates, past and weekend dates are rejected', async () => {
-    const [r] = await as(ALICE, `select * from submit_wfh_request($1::date, 'Transport disruption', 'Taxi strike')`, [weekday])
+    const [r] = await as(ALICE, `select * from submit_wfh_request($1::date, 'Transport disruption', 'Taxi strike', -34.04, 18.62, 'Mitchells Plain, Cape Town')`, [weekday])
     expect(r.status).toBe('pending')
+    expect(r.location_latitude).toBe(-34.04)
+    expect(r.location_address).toBe('Mitchells Plain, Cape Town')
     reqId = r.id
     await fails(as(ALICE, `select submit_wfh_request($1::date, 'Other', 'again please')`, [weekday]), 'already have a pending')
     await fails(as(ALICE, `select submit_wfh_request(sast_today() - 1, 'Other', 'yesterday!')`), 'today or a future date')
@@ -134,8 +149,8 @@ describe('WFH workflow', () => {
     await fails(as(MENTOR, `select decide_wfh_request($1, 'rejected', 'changed my mind')`, [reqId]), 'already been decided')
   })
   it('candidate sees decision, reviewer name and notification', async () => {
-    const [r] = await as(ALICE, `select status, reviewer_name from wfh_overview where id = $1`, [reqId])
-    expect(r).toEqual({ status: 'approved', reviewer_name: 'Test Mentor' })
+    const [r] = await as(ALICE, `select status, reviewer_name, location_latitude, location_address from wfh_overview where id = $1`, [reqId])
+    expect(r).toEqual({ status: 'approved', reviewer_name: 'Test Mentor', location_latitude: -34.04, location_address: 'Mitchells Plain, Cape Town' })
     expect((await as(ALICE, `select title from notifications`))[0].title).toBe('WFH request approved')
   })
   it('audit trail is written and read-only', async () => {
