@@ -31,10 +31,10 @@ describe('registerStatus', () => {
     expect(registerStatus({ attendance_date: today, check_in_at: '2026-10-20T06:00:00Z' }, today).label).toBe('Checked in')
     expect(registerStatus({ attendance_date: '2026-10-19', check_in_at: '2026-10-19T06:00:00Z' }, today).label).toBe('No check-out')
   })
-  it('late only after the display threshold', () => {
-    const row = (t) => ({ attendance_date: today, check_in_at: t, check_out_at: '2026-10-20T14:00:00Z' })
-    expect(registerStatus(row('2026-10-20T06:30:00Z'), today).label).toBe('Submitted') // 08:30
-    expect(registerStatus(row('2026-10-20T06:41:00Z'), today).label).toBe('Late') // 08:41
+  it('late comes from the server-computed flag', () => {
+    const row = (late) => ({ attendance_date: today, check_in_at: '2026-10-20T07:00:00Z', check_out_at: '2026-10-20T14:00:00Z', late })
+    expect(registerStatus(row(false), today).label).toBe('Submitted')
+    expect(registerStatus(row(true), today).label).toBe('Late')
   })
   it('sums hours ignoring open records', () => expect(sumHours([{ hours: 8.6 }, { hours: null }, { hours: '7.4' }])).toBe(16))
 })
@@ -102,7 +102,7 @@ describe('CSV reports', () => {
   })
   it('attendance report has the expected columns and values', () => {
     const csv = toCsv([{ full_name: 'Lerato Dlamini', candidate_identifier: 'CAP-1', attendance_date: '2026-10-20',
-      check_in_at: '2026-10-20T06:02:00Z', check_out_at: '2026-10-20T14:32:00Z', hours: 8.5, work_mode: 'wfh', wfh_approved: true }],
+      check_in_at: '2026-10-20T06:02:00Z', check_out_at: '2026-10-20T14:32:00Z', hours: 8.5, late: false, work_mode: 'wfh', wfh_approved: true }],
     ATTENDANCE_COLUMNS).split('\r\n')
     expect(csv[0]).toBe('Candidate name,Candidate ID,Cohort,Date,Check-in time,Check-out time,Working hours,Work mode,WFH approved,Attendance status,Location note,Detected address,Latitude,Longitude')
     expect(csv[1]).toBe('Lerato Dlamini,CAP-1,,2026-10-20,08:02,16:32,8.50,Working From Home,Yes,Submitted,,,,')

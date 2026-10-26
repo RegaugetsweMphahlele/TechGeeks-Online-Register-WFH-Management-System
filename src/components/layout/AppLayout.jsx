@@ -1,4 +1,4 @@
-import { CalendarDays, ChevronRight, ClipboardCheck, History, House, Laptop, LogOut, Menu, User, Users, X } from 'lucide-react'
+import { CalendarCheck, CalendarDays, ChevronRight, ClipboardCheck, History, House, Laptop, LogOut, Menu, Timer, User, Users, X } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { countByStatus } from '../../api/wfh.js'
@@ -13,6 +13,7 @@ const NAV = {
     label: 'Candidate portal',
     items: [
       { to: '/candidate', label: 'Dashboard', icon: House, end: true },
+      { to: '/candidate/shifts', label: 'Shifts', icon: Timer },
       { to: '/candidate/register', label: 'Register Attendance', icon: ClipboardCheck },
       { to: '/candidate/attendance', label: 'Attendance History', icon: History },
       { to: '/candidate/wfh', label: 'WFH Requests', icon: Laptop },
@@ -23,6 +24,8 @@ const NAV = {
     label: 'Tech Champion portal',
     items: [
       { to: '/mentor', label: 'Dashboard', icon: House, end: true },
+      { to: '/mentor/shifts', label: 'Shifts', icon: Timer },
+      { to: '/mentor/weekly-review', label: 'Weekly Review', icon: CalendarCheck },
       { to: '/mentor/attendance', label: 'Attendance', icon: ClipboardCheck },
       { to: '/mentor/wfh', label: 'WFH Requests', icon: Laptop, badge: 'pending' },
       { to: '/mentor/candidates', label: 'Candidates', icon: Users },

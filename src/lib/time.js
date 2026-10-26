@@ -1,9 +1,6 @@
 // All display in Africa/Johannesburg; the database is the clock of record.
 export const TZ = 'Africa/Johannesburg'
 
-// Display-only threshold for the "Late" badge. Not enforced anywhere — confirm with CAPACITI.
-export const LATE_AFTER = '08:30'
-
 const fmt = (opts) => new Intl.DateTimeFormat('en-ZA', { timeZone: TZ, ...opts })
 const dateOnly = (d) => (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d) ? new Date(`${d}T12:00:00+02:00`) : new Date(d))
 
@@ -47,8 +44,6 @@ export function hoursBetween(from, to) {
 }
 
 export const formatHours = (h) => (h == null ? '—' : `${Number(h).toFixed(1)} h`)
-
-export const isLate = (checkInAt) => Boolean(checkInAt) && formatTime(checkInAt) > LATE_AFTER
 
 export function greeting(now = new Date()) {
   const h = Number(fmt({ hour: '2-digit', hour12: false }).format(now))

@@ -132,7 +132,8 @@ describe('WFH workflow', () => {
     await fails(as(ALICE, `select submit_wfh_request($1::date, 'Bored', null)`, [weekday]), 'check constraint')
   })
   it('mentor got a notification', async () => {
-    expect((await as(MENTOR, `select title from notifications`))[0].title).toBe('New WFH request')
+    // (A late check-in earlier may also have notified the mentor, so look at the newest.)
+    expect((await as(MENTOR, `select title from notifications order by created_at desc`))[0].title).toBe('New WFH request')
   })
   it('candidates and unassigned mentors cannot decide', async () => {
     await fails(as(ALICE, `select decide_wfh_request($1, 'approved')`, [reqId]), 'not assigned to you')

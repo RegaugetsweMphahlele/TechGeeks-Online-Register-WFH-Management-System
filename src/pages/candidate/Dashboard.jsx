@@ -1,4 +1,4 @@
-import { CalendarDays, CheckCircle2, ChevronRight, CircleDashed, ClipboardCheck, Clock, Laptop, MapPin, Plus, TrendingUp } from 'lucide-react'
+import { CalendarDays, CheckCircle2, ChevronRight, CircleDashed, ClipboardCheck, Clock, Laptop, MapPin, Plus, Timer, TrendingUp } from 'lucide-react'
 import { useState } from 'react'
 import { listAttendance } from '../../api/attendance.js'
 import { getWfhForDate, listWfh } from '../../api/wfh.js'
@@ -13,7 +13,8 @@ import Modal from '../../components/ui/Modal.jsx'
 import { useAsync } from '../../hooks/useAsync.js'
 import { registerStatus, sumHours } from '../../lib/attendance.js'
 import { friendlyError } from '../../lib/errors.js'
-import { formatDate, formatDay, formatFullDate, formatHours, formatMonth, formatTime, greeting, isLate, sastToday, weekStart } from '../../lib/time.js'
+import { formatMinutes, punctuality, shiftState, shiftTotals } from '../../lib/shifts.js'
+import { formatDate, formatDay, formatFullDate, formatHours, formatMonth, formatTime, greeting, sastToday, weekStart } from '../../lib/time.js'
 
 async function loadDashboard(uid) {
   const today = sastToday()
@@ -31,7 +32,7 @@ async function loadDashboard(uid) {
     recent: rows.slice(0, 5),
     weekHours: sumHours(rows.filter((r) => r.attendance_date >= weekStart(today))),
     monthDays: monthRows.length,
-    monthLate: monthRows.filter((r) => isLate(r.check_in_at)).length,
+    monthLate: monthRows.filter((r) => r.late).length,
     wfh: wfh.data,
     pendingCount: pending.count,
     todaysWfh,
@@ -82,6 +83,31 @@ function TodayCard({ today, todaysWfh }) {
   )
 }
 
+const breakWord = (row, t) => (row[`${t}_ended_at`] ? 'done' : row[`${t}_started_at`] ? 'in progress' : 'not taken')
+
+/** Compact Shifts section: today's state, totals so far, and the way into the Shifts page. */
+function ShiftStrip({ today }) {
+  const s = shiftState(today)
+  const t = today && shiftTotals(today)
+  return (
+    <Card className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center">
+      <span className="grid size-11 shrink-0 place-items-center rounded-[12px] bg-purple-tint text-purple"><Timer className="size-6" aria-hidden /></span>
+      <div className="min-w-0 flex-1">
+        <p className="label-caps">Today's shift</p>
+        <p className="flex flex-wrap items-center gap-2 font-semibold">
+          <Badge tone={s.tone}>{s.label}</Badge>
+          {today && (() => { const p = punctuality(today); return <Badge tone={p.tone}>{p.label}</Badge> })()}
+        </p>
+        <p className="mt-1 text-xs text-muted">
+          {today ? `Net work ${formatMinutes(t.net)}${t.final ? '' : ' so far'} · breaks ${formatMinutes(t.breaks)} · tea ${breakWord(today, 'tea')} · lunch ${breakWord(today, 'lunch')}`
+            : 'Clock in, track tea and lunch breaks, and clock out on the Shifts page.'}
+        </p>
+      </div>
+      <Button to="/candidate/shifts" icon={Timer}>{!today ? 'Clock In' : today.check_out_at ? 'View shift' : 'Manage shift'}</Button>
+    </Card>
+  )
+}
+
 export default function CandidateDashboard() {
   const { profile } = useAuth()
   const { data, error, loading, reload } = useAsync(() => loadDashboard(profile.id), [profile.id])
@@ -102,7 +128,10 @@ export default function CandidateDashboard() {
       />
       {error ? <Card><ErrorState message={friendlyError(error)} onRetry={reload} /></Card> : (
         <div className="flex flex-col gap-6">
-          {loading && !data ? <Card><SkeletonRows rows={2} /></Card> : <TodayCard today={data.today} todaysWfh={data.todaysWfh} />}
+          {loading && !data ? <Card><SkeletonRows rows={2} /></Card> : <>
+            <ShiftStrip today={data.today} />
+            <TodayCard today={data.today} todaysWfh={data.todaysWfh} />
+          </>}
 
           <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
             <StatCard label="Today's Status" icon={CheckCircle2} tone="success" loading={!data}

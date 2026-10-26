@@ -24,3 +24,17 @@ select c.full_name, c.candidate_identifier, c.cohort, m.full_name as tech_champi
 
 -- 5) Sensitive-change audit trail:
 select created_at, action, entity_id, details from public.audit_logs order by created_at desc limit 50;
+
+-- 6) Shift schedule (single row, SAST wall-clock times). Existing shifts keep the times they were
+--    created with; changes apply from the next clock-in. Grace minutes default to 0 (strict).
+update public.shift_schedule set
+  workday_start = '09:00', workday_end = '16:00',
+  tea_start = '10:30', tea_end = '10:45',
+  lunch_start = '12:00', lunch_end = '13:00',
+  late_grace_minutes = 0,     -- clock-in after start + grace is flagged Late
+  break_grace_minutes = 0,    -- break longer than allowance + grace is flagged
+  break_window_minutes = 15;  -- a break started earlier than this before its window (or after it) is flagged
+
+-- 7) Shift event history and staff corrections:
+select created_at, action, details from public.audit_logs where entity in ('attendance_records', 'shift_breaks') order by created_at desc limit 50;
+select * from public.correction_overview order by created_at desc limit 50;

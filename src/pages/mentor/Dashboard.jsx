@@ -1,8 +1,9 @@
-import { CheckCircle2, ChevronRight, ClipboardCheck, Inbox, Laptop, Users, XCircle } from 'lucide-react'
+import { BellRing, CheckCircle2, ChevronRight, ClipboardCheck, Inbox, Laptop, Users, XCircle } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useOutletContext } from 'react-router-dom'
 import { listAttendance } from '../../api/attendance.js'
 import { listMyCandidates } from '../../api/profiles.js'
+import { getSchedule, listShifts } from '../../api/shifts.js'
 import { countByStatus, listWfh } from '../../api/wfh.js'
 import { useAuth } from '../../auth/AuthProvider.jsx'
 import { CandidateCell } from '../../components/AttendanceTable.jsx'
@@ -15,16 +16,26 @@ import { EmptyState, ErrorState, SkeletonRows } from '../../components/ui/Feedba
 import { useAsync } from '../../hooks/useAsync.js'
 import { registerStatus } from '../../lib/attendance.js'
 import { friendlyError } from '../../lib/errors.js'
-import { formatDate, formatDayLong, formatFullDate, formatMonth, formatTime, greeting, monthBounds, sastToday } from '../../lib/time.js'
+import { buildDay } from '../../lib/shifts.js'
+import { addDays, formatDate, formatDay, formatDayLong, formatFullDate, formatMonth, formatTime, greeting, monthBounds, sastToday } from '../../lib/time.js'
 
 async function load() {
   const today = sastToday()
-  const [candidates, todayAtt, pending, month] = await Promise.all([
+  const [candidates, todayAtt, pending, month, schedule, recent] = await Promise.all([
     listMyCandidates(),
     listAttendance({ from: today, to: today }, { pageSize: 500 }),
     listWfh({ status: 'pending' }, { pageSize: 5 }),
     countByStatus(monthBounds(today)),
+    getSchedule(),
+    listShifts({ from: addDays(today, -7), to: addDays(today, -1) }),
   ])
+  // Today's live exceptions, plus earlier shifts nobody has closed (forgotten clock-out / open break).
+  const alerts = [
+    ...buildDay(candidates, todayAtt.data, { date: today, schedule, now: new Date() })
+      .filter((r) => r.flags.length).map((r) => ({ key: r.id, id: r.id, name: r.candidate.full_name, date: today, flags: r.flags })),
+    ...recent.filter((r) => r.shift_status === 'incomplete' || r.break_incomplete)
+      .map((r) => ({ key: r.id, id: r.candidate_id, name: r.full_name, date: r.attendance_date, flags: ['No clock-out', r.break_incomplete && 'Break not ended'].filter(Boolean) })),
+  ]
   const byCandidate = new Map(todayAtt.data.map((r) => [r.candidate_id, r]))
   const register = candidates.filter((c) => c.status === 'active').map((c) => ({ ...c, rec: byCandidate.get(c.id) }))
   // Not checked in first, then still-open, then done.
@@ -39,6 +50,7 @@ async function load() {
     pending: pending.data,
     pendingCount: pending.count,
     month,
+    alerts,
   }
 }
 
@@ -66,6 +78,25 @@ export default function MentorDashboard() {
             <StatCard label="Approved" icon={CheckCircle2} tone="success" loading={!data} value={data?.month.approved} caption={`Requested dates in ${monthName}`} />
             <StatCard label="Rejected" icon={XCircle} tone="error" loading={!data} value={data?.month.rejected} caption={`Requested dates in ${monthName}`} />
           </div>
+
+          <Card aria-labelledby="shift-alerts">
+            <CardHeader id="shift-alerts" title="Shift alerts" subtitle="Detected automatically from recorded times, for your review (not formal warnings)" actionTo="/mentor/shifts" action="Open Shifts" />
+            {!data ? <SkeletonRows rows={2} /> : data.alerts.length === 0 ? (
+              <EmptyState icon={BellRing} title="No shift exceptions right now">Late arrivals, break overruns, missing clock-ins and forgotten clock-outs will appear here.</EmptyState>
+            ) : (
+              <ul className="max-h-[320px] overflow-y-auto px-5 pb-3">
+                {data.alerts.map((a) => (
+                  <li key={a.key} className="border-t border-line">
+                    <Link to={`/mentor/shifts/${a.id}?date=${a.date}`} className="flex flex-wrap items-center gap-2 py-2.5 hover:bg-bg">
+                      <span className="min-w-0 flex-1 font-medium">{a.name} <span className="text-xs font-normal text-muted">· {a.date === today ? 'Today' : formatDay(a.date)}</span></span>
+                      {a.flags.map((f) => <Badge key={f} tone="late">{f}</Badge>)}
+                      <ChevronRight className="size-4 text-muted" aria-hidden />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
 
           <div className="grid gap-6 xl:grid-cols-[1.1fr_1fr]">
             <Card aria-labelledby="queue">

@@ -1,24 +1,21 @@
-import { CheckCircle2, ClipboardCheck, LogOut } from 'lucide-react'
+import { CheckCircle2, LogOut, Timer } from 'lucide-react'
 import { useState } from 'react'
-import { checkIn, checkOut, getToday } from '../../api/attendance.js'
+import { checkOut, getToday } from '../../api/attendance.js'
 import { getWfhForDate } from '../../api/wfh.js'
 import { useAuth } from '../../auth/AuthProvider.jsx'
 import { PageHeader } from '../../components/layout/AppLayout.jsx'
 import { useToast } from '../../components/Toast.jsx'
-import LocationCapture from '../../components/LocationCapture.jsx'
+import CheckInForm from '../../components/CheckInForm.jsx'
 import LocationMap from '../../components/LocationMap.jsx'
 import Badge, { ModeBadge } from '../../components/ui/Badge.jsx'
 import Button from '../../components/ui/Button.jsx'
 import { Card } from '../../components/ui/Card.jsx'
 import { Alert, ErrorState, Spinner } from '../../components/ui/Feedback.jsx'
-import { Input, Select, Textarea } from '../../components/ui/Field.jsx'
 import Modal, { ModalIcon } from '../../components/ui/Modal.jsx'
 import { useAsync } from '../../hooks/useAsync.js'
 import { registerStatus } from '../../lib/attendance.js'
 import { friendlyError } from '../../lib/errors.js'
-import { formatFullDate, formatHours, formatTime, isWeekend, sastToday } from '../../lib/time.js'
-
-const OFFICE = 'CAPACITI office'
+import { formatFullDate, formatHours, formatTime, sastToday } from '../../lib/time.js'
 
 const Item = ({ label, children }) => (
   <div className="flex items-center justify-between gap-4 border-t border-line py-3 first:border-0"><dt className="text-muted">{label}</dt><dd className="text-right">{children}</dd></div>
@@ -50,42 +47,16 @@ export default function RegisterAttendance() {
     () => Promise.all([getToday(profile.id), getWfhForDate(profile.id, today)]).then(([rec, wfh]) => ({ rec, wfh })),
     [profile.id, today],
   )
-  const [form, setForm] = useState({ workMode: '', location: '', notes: '' })
-  const [deviceLocation, setDeviceLocation] = useState(null)
-  const [errors, setErrors] = useState({})
   const [busy, setBusy] = useState(false)
   const [actionError, setActionError] = useState(null)
   const [confirmOut, setConfirmOut] = useState(false)
   const [result, setResult] = useState(null) // { kind: 'in'|'out', rec }
 
-  const set = (k) => (e) => {
-    const v = e.target.value
-    setForm((f) => ({ ...f, [k]: v, ...(k === 'workMode' && { location: v === 'office' ? OFFICE : f.location === OFFICE ? '' : f.location }) }))
-    setErrors((x) => ({ ...x, [k]: undefined }))
-  }
-
-  async function submitIn(e) {
-    e.preventDefault()
-    const v = {}
-    if (!form.workMode) v.workMode = 'Select your attendance status'
-    if (!form.location.trim()) v.location = 'Tell us where you are working from'
-    if (!deviceLocation) v.deviceLocation = 'Get your current location before checking in'
-    setErrors(v)
-    if (Object.keys(v).length) return
-    setBusy(true)
-    setActionError(null)
-    try {
-      await checkIn({ ...form, deviceLocation })
-      const rec = await getToday(profile.id) // re-read through the view for hours/approval flags
-      setResult({ kind: 'in', rec })
-      toast('success', 'Checked in', `Registered at ${formatTime(rec.check_in_at)}.`)
-      reload()
-    } catch (err) {
-      setActionError(friendlyError(err))
-      reload() // e.g. already checked in on another device → show the real state
-    } finally {
-      setBusy(false)
-    }
+  async function checkedIn() {
+    const rec = await getToday(profile.id) // re-read through the view for hours/approval flags
+    setResult({ kind: 'in', rec })
+    toast('success', 'Checked in', `Registered at ${formatTime(rec.check_in_at)}.`)
+    reload()
   }
 
   async function doCheckOut() {
@@ -117,29 +88,7 @@ export default function RegisterAttendance() {
             <div className="flex flex-col gap-5">
               {actionError && <Alert type="error" title={actionError} onClose={() => setActionError(null)} />}
               {!rec ? (
-                <form onSubmit={submitIn} noValidate className="flex flex-col gap-5">
-                  <div>
-                    <h2 className="text-lg font-semibold">Check in for today</h2>
-                    <p className="text-xs text-muted">Your check-in time is recorded by the server when you submit.</p>
-                  </div>
-                  {isWeekend(today) && <Alert type="info" title="It's the weekend">You can still register if you're working today.</Alert>}
-                  <Select label="Attendance status" required value={form.workMode} onChange={set('workMode')} error={errors.workMode}>
-                    <option value="" disabled>Select status</option>
-                    <option value="office">Office</option>
-                    <option value="wfh">Working From Home</option>
-                  </Select>
-                  {form.workMode === 'wfh' && (data.wfh?.status === 'approved'
-                    ? <Alert type="success" title="WFH approved for today">Approved by {data.wfh.reviewer_name}.</Alert>
-                    : <Alert type="warning" title={data.wfh?.status === 'pending' ? 'Your WFH request for today is still pending' : "You don't have an approved WFH request for today"}>
-                        You can still check in; your Tech Champion will see that it wasn't approved.
-                      </Alert>)}
-                  <Input label="Location" required value={form.location} onChange={set('location')} error={errors.location} maxLength={120}
-                    placeholder={form.workMode === 'wfh' ? 'e.g. Home – Mitchells Plain' : OFFICE} hint="Self-reported; not location tracking." />
-                  {errors.deviceLocation && <Alert type="error" title={errors.deviceLocation} />}
-                  <LocationCapture location={deviceLocation} onChange={(value) => { setDeviceLocation(value); setErrors((current) => ({ ...current, deviceLocation: undefined })) }} required />
-                  <Textarea label="Notes" rows={3} maxLength={500} value={form.notes} onChange={set('notes')} placeholder="Optional" />
-                  <Button type="submit" icon={ClipboardCheck} loading={busy} className="self-start">Check in</Button>
-                </form>
+                <CheckInForm wfh={data.wfh} onDone={checkedIn} onFailed={reload} />
               ) : (
                 <>
                   <div>
@@ -147,7 +96,10 @@ export default function RegisterAttendance() {
                     <p className="text-xs text-muted">{rec.check_out_at ? 'See you tomorrow.' : 'Remember to check out when you finish work.'}</p>
                   </div>
                   <Summary rec={rec} />
-                  {!rec.check_out_at && <Button icon={LogOut} onClick={() => setConfirmOut(true)} className="self-start">Check out</Button>}
+                  <div className="flex flex-wrap gap-3">
+                    {!rec.check_out_at && <Button icon={LogOut} onClick={() => setConfirmOut(true)}>Check out</Button>}
+                    <Button variant="secondary" icon={Timer} to="/candidate/shifts">Breaks &amp; shift timeline</Button>
+                  </div>
                 </>
               )}
             </div>
