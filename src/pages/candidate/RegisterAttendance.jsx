@@ -18,7 +18,7 @@ import { friendlyError } from '../../lib/errors.js'
 import { formatFullDate, formatHours, formatTime, sastToday } from '../../lib/time.js'
 
 const Item = ({ label, children }) => (
-  <div className="flex items-center justify-between gap-4 border-t border-line py-3 first:border-0"><dt className="text-muted">{label}</dt><dd className="text-right">{children}</dd></div>
+  <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-line py-3 first:border-0"><dt className="text-muted">{label}</dt><dd className="min-w-0 text-right">{children}</dd></div>
 )
 
 function Summary({ rec }) {
@@ -82,7 +82,7 @@ export default function RegisterAttendance() {
   return (
     <>
       <PageHeader title="Register attendance" subtitle={formatFullDate(today)} />
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,640px)_1fr]">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,640px)_minmax(0,1fr)]">
         <Card className="p-6">
           {error ? <ErrorState message={friendlyError(error)} onRetry={reload} /> : loading && !data ? <Spinner /> : (
             <div className="flex flex-col gap-5">
@@ -105,7 +105,7 @@ export default function RegisterAttendance() {
             </div>
           )}
         </Card>
-        <aside className="text-xs text-muted lg:pt-2">
+        <aside className="text-xs text-muted xl:pt-2">
           <h2 className="label-caps mb-2">How the register works</h2>
           <ul className="list-disc space-y-1.5 pl-4">
             <li>One register entry per day, in South African time.</li>

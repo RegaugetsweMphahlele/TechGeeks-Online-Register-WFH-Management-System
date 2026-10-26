@@ -43,7 +43,8 @@
 
 @layer base {
   html { @apply bg-bg text-ink antialiased; }
-  body { @apply min-h-dvh font-sans text-sm; }
+  /* Long emails, URLs and IDs break only when they would otherwise overflow their box (and widen the page). */
+  body { @apply min-h-dvh font-sans text-sm wrap-break-word; }
   :focus-visible { @apply outline-2 outline-offset-2 outline-purple; }
   input[type='date']::-webkit-calendar-picker-indicator { cursor: pointer; }
 }

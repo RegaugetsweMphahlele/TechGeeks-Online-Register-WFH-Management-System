@@ -1,4 +1,5 @@
 // Figma "Badge/Status" and "Badge/Attendance": dot + label, so status never relies on colour alone.
+// One line wherever it fits; wraps instead of overflowing when its container is narrower than the label.
 const TONES = {
   pending: ['bg-warning-surface text-warning', 'bg-warning-accent'],
   approved: ['bg-success-surface text-success', 'bg-success'],
@@ -15,8 +16,8 @@ const TONES = {
 export default function Badge({ tone = 'neutral', children }) {
   const [cls, dot] = TONES[tone] ?? TONES.neutral
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-[3px] text-xs font-medium leading-[18px] whitespace-nowrap ${cls}`}>
-      <span className={`size-1.5 rounded-full ${dot}`} aria-hidden />
+    <span className={`inline-flex max-w-full items-center gap-1.5 rounded-[12px] px-2.5 py-[3px] text-xs font-medium leading-[18px] ${cls}`}>
+      <span className={`size-1.5 shrink-0 rounded-full ${dot}`} aria-hidden />
       {children}
     </span>
   )

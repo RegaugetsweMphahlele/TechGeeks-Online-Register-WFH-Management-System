@@ -30,7 +30,8 @@ export default function Modal({ open, onClose, title, description, icon, childre
             </button>
           </div>
           <div className="overflow-y-auto px-6 py-5 sm:px-8">{children}</div>
-          {footer && <div className="flex gap-3 px-6 pb-8 sm:px-8 [&>*]:flex-1">{footer}</div>}
+          {/* Stacked on phones (primary on top) so long button labels never overflow the dialog. */}
+          {footer && <div className="flex flex-col-reverse gap-3 px-6 pb-8 sm:flex-row sm:px-8 [&>*]:flex-1">{footer}</div>}
         </div>
       )}
     </dialog>

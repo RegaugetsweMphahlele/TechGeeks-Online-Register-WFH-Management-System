@@ -18,7 +18,7 @@ export function SearchField({ value, onChange, placeholder = 'Search by name or 
     return () => clearTimeout(t)
   }, [text]) // eslint-disable-line react-hooks/exhaustive-deps
   return (
-    <label className="relative block min-w-[220px] flex-1 sm:max-w-80">
+    <label className="relative block w-full min-w-0 sm:w-auto sm:min-w-[220px] sm:max-w-80 sm:flex-1">
       <span className="sr-only">Search</span>
       <Search className="pointer-events-none absolute top-1/2 left-3 size-5 -translate-y-1/2 text-muted" aria-hidden />
       <input type="search" value={text} onChange={(e) => setText(e.target.value)} placeholder={placeholder} className={`${control} pl-10`} />
@@ -28,7 +28,7 @@ export function SearchField({ value, onChange, placeholder = 'Search by name or 
 
 export function FilterSelect({ label, value, onChange, options }) {
   return (
-    <label className="block min-w-[150px] flex-1 sm:flex-none">
+    <label className="block min-w-[140px] flex-1 sm:flex-none">
       <span className="sr-only">{label}</span>
       <select value={value ?? ''} onChange={(e) => onChange(e.target.value || undefined)} className={`${control} cursor-pointer pr-8`}>
         <option value="">{label}: All</option>
@@ -40,13 +40,13 @@ export function FilterSelect({ label, value, onChange, options }) {
 
 export function DateRange({ from, to, onChange, label = 'Date' }) {
   return (
-    <fieldset className="flex min-w-[260px] flex-1 items-center gap-2 sm:flex-none">
+    <fieldset className="flex w-full min-w-0 items-center gap-2 sm:w-auto sm:min-w-[260px] sm:flex-none">
       <legend className="sr-only">{label} range</legend>
       <input type="date" aria-label={`${label} from`} value={from ?? ''} max={to || undefined}
-        onChange={(e) => onChange({ from: e.target.value || undefined, to })} className={control} />
+        onChange={(e) => onChange({ from: e.target.value || undefined, to })} className={`${control} min-w-0 flex-1`} />
       <span className="text-muted" aria-hidden>–</span>
       <input type="date" aria-label={`${label} to`} value={to ?? ''} min={from || undefined}
-        onChange={(e) => onChange({ from, to: e.target.value || undefined })} className={control} />
+        onChange={(e) => onChange({ from, to: e.target.value || undefined })} className={`${control} min-w-0 flex-1`} />
     </fieldset>
   )
 }

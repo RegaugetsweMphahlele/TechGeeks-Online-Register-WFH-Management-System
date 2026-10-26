@@ -50,7 +50,7 @@ export default function Profile() {
   return (
     <>
       <PageHeader title="Profile" subtitle="Your account details." />
-      <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
         <Card className="flex flex-col items-center gap-3 p-6 text-center">
           <Avatar name={profile.full_name} size="l" tone={isCandidate ? 'pink' : 'purple'} />
           <div>

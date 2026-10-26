@@ -21,7 +21,7 @@ export default function Candidates() {
 
   const columns = [
     { key: 'name', header: 'Candidate', render: (c) => <CandidateCell name={c.full_name} id={c.candidate_identifier} /> },
-    { key: 'email', header: 'Email', render: (c) => <a className="text-muted hover:text-purple" href={`mailto:${c.email}`}>{c.email}</a> },
+    { key: 'email', header: 'Email', className: 'wrap-anywhere', render: (c) => <a className="text-muted hover:text-purple" href={`mailto:${c.email}`}>{c.email}</a> },
     { key: 'cohort', header: 'Cohort', render: (c) => c.cohort ?? '—' },
     { key: 'since', header: 'Joined', render: (c) => formatDate(c.created_at) },
     { key: 'status', header: 'Account', render: (c) => <Badge tone={c.status === 'active' ? 'approved' : 'neutral'}>{c.status === 'active' ? 'Active' : 'Inactive'}</Badge> },
@@ -43,7 +43,7 @@ export default function Candidates() {
             <EmptyState icon={Users} title={q ? 'No candidates match' : 'No candidates assigned yet'}>
               {!q && 'CAPACITI will assign candidates to you.'}
             </EmptyState>
-          ) : <Table columns={columns} rows={rows} caption="Assigned candidates" />}
+          ) : <Table columns={columns} rows={rows} caption="Assigned candidates" minWidth={860} />}
       </Card>
     </>
   )

@@ -73,7 +73,7 @@ function CorrectionModal({ kind, row, date, candidateId, onClose, onSaved }) {
             <option value="" disabled>Select</option><option value="office">Office</option><option value="wfh">Working From Home</option>
           </Select>
         )}
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Input type="time" required label={kind === 'shift' ? 'Clock-in' : 'Break started'} value={f.in} onChange={set('in')} />
           <Input type="time" required={kind === 'break'} label={kind === 'shift' ? 'Clock-out' : 'Break ended'} value={f.out} onChange={set('out')}
             hint={kind === 'shift' ? 'Leave empty to keep the shift open (today only)' : undefined} />
@@ -128,7 +128,7 @@ export default function ShiftDetail() {
         {flags.length > 0 && <Alert type="warning" title="Detected exceptions (for review)">{flags.join(' · ')}</Alert>}
         <CorrectionList corrections={data.corrections} />
 
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <Card aria-labelledby="tl">
             <CardHeader id="tl" title="Shift timeline" subtitle={row ? `Net ${formatMinutes(totals.net)}${totals.final ? '' : ' so far'} · breaks ${formatMinutes(totals.breaks)} · elapsed ${formatMinutes(totals.elapsed)}` : 'No clock-in recorded for this date'} />
             <div className="px-5 pb-5">

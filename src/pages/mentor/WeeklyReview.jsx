@@ -12,7 +12,7 @@ import Button from '../../components/ui/Button.jsx'
 import { Card } from '../../components/ui/Card.jsx'
 import { EmptyState, ErrorState, SkeletonRows } from '../../components/ui/Feedback.jsx'
 import Modal from '../../components/ui/Modal.jsx'
-import { Table } from '../../components/ui/Table.jsx'
+import { CellLines, Table } from '../../components/ui/Table.jsx'
 import { useAsync } from '../../hooks/useAsync.js'
 import { friendlyError } from '../../lib/errors.js'
 import { WEEKLY_COLUMNS } from '../../lib/reports.js'
@@ -79,17 +79,11 @@ export default function WeeklyReview() {
 
   const columns = [
     { key: 'c', header: 'Candidate', render: (r) => (
-      <span className="flex items-center gap-2"><CandidateCell name={r.full_name} id={r.candidate_identifier} />{r.needsSupport && <Badge tone="late">Needs support</Badge>}</span>
+      <span className="flex flex-col items-start gap-1.5"><CandidateCell name={r.full_name} id={r.candidate_identifier} />{r.needsSupport && <Badge tone="late">Needs support</Badge>}</span>
     ) },
-    { key: 'att', header: 'Attended', render: (r) => `${r.attended}/${r.scheduledDays}` },
-    { key: 'done', header: 'Completed', render: (r) => r.completed },
-    { key: 'late', header: 'Late', render: (r) => r.late || '—' },
-    { key: 'early', header: 'Early out', render: (r) => r.early || '—' },
-    { key: 'miss', header: 'No clock-in', render: (r) => r.missing || '—' },
-    { key: 'inc', header: 'Incomplete', render: (r) => r.incomplete || '—' },
-    { key: 'net', header: 'Net hours', render: (r) => formatMinutes(r.netMinutes) },
-    { key: 'tea', header: 'Tea', render: (r) => formatMinutes(r.teaMinutes) },
-    { key: 'lunch', header: 'Lunch', render: (r) => formatMinutes(r.lunchMinutes) },
+    { key: 'days', header: 'Days', render: (r) => <CellLines items={[['Attended', `${r.attended}/${r.scheduledDays}`], ['Completed', r.completed], ['No clock-in', r.missing], ['Incomplete', r.incomplete]]} /> },
+    { key: 'punct', header: 'Punctuality', render: (r) => <CellLines items={[['Late', r.late], ['Early out', r.early]]} /> },
+    { key: 'hours', header: 'Time', render: (r) => <CellLines items={[['Net work', formatMinutes(r.netMinutes)], ['Tea', formatMinutes(r.teaMinutes)], ['Lunch', formatMinutes(r.lunchMinutes)]]} /> },
     { key: 'brk', header: 'Break issues', render: (r) => r.breakIssues || '—' },
     { key: 'rep', header: 'Progress updates', render: (r) => (r.reportRate == null ? '—' : `${r.reports}/${r.attended} (${r.reportRate}%)`) },
     { key: 'go', header: <span className="sr-only">Review</span>, render: (r) => <Button size="s" variant="ghost" icon={ClipboardList} onClick={() => setOpen(r)}>Review</Button> },
@@ -109,7 +103,7 @@ export default function WeeklyReview() {
         {error ? <ErrorState message={friendlyError(error)} onRetry={reload} /> : loading && !data ? <SkeletonRows rows={6} /> :
           data.rows.length === 0 ? <EmptyState icon={CalendarRange} title="No candidates assigned" /> : (
             <div className={loading ? 'opacity-60' : ''} aria-busy={loading}>
-              <Table columns={columns} rows={data.rows} caption="Weekly attendance summary" />
+              <Table columns={columns} rows={data.rows} caption="Weekly attendance summary" minWidth={820} />
               <p className="border-t border-line px-6 py-3 text-xs text-muted">
                 {data.days.length} expected working day{data.days.length === 1 ? '' : 's'} so far (weekdays; public holidays are not excluded).
                 Days without a clock-in count as missing, never as attended.

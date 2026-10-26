@@ -134,7 +134,7 @@ export default function Shifts() {
             onDone={() => { toast('success', 'Clocked in', 'Your shift has started.'); reload() }} /></Card>
         ) : (
           <>
-            <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
               <StatCard label="Elapsed shift time" icon={Clock} value={formatMinutes(totals.elapsed)}
                 caption={totals.final ? 'Clock-in to clock-out' : `So far · scheduled ${formatMinutes(plan.elapsed)}`} />
               <StatCard label="Time on breaks" icon={Coffee} tone="warning" value={formatMinutes(totals.breaks)}
@@ -145,7 +145,7 @@ export default function Shifts() {
                 caption={`Until scheduled clock-out at ${formatTime(row.scheduled_end)}`} />
             </div>
 
-            <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
               <Card aria-labelledby="tl">
                 <CardHeader id="tl" title="Today's timeline" subtitle="Scheduled times beside what was actually recorded" />
                 <div className="px-5 pb-5"><ShiftTimeline row={row} schedule={schedule} /></div>

@@ -14,7 +14,7 @@ import { validateLogin, validateNewPassword, EMAIL_RE } from '../../lib/validati
 
 function AuthShell({ title, subtitle, children }) {
   return (
-    <div className="grid min-h-dvh lg:grid-cols-[1fr_minmax(480px,560px)]">
+    <div className="grid min-h-dvh grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(480px,560px)]">
       <aside className="relative hidden flex-col justify-between overflow-hidden bg-kadet p-12 text-white lg:flex">
         <span className="absolute inset-y-0 left-0 w-2 bg-salmon" aria-hidden />
         <img src={logoWhite} alt="CAPACITI" width={200} height={40} />

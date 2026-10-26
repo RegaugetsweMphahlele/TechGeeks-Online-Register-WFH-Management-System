@@ -9,7 +9,7 @@ import Badge from '../../components/ui/Badge.jsx'
 import Button from '../../components/ui/Button.jsx'
 import { Card, StatCard } from '../../components/ui/Card.jsx'
 import { EmptyState, ErrorState, SkeletonRows } from '../../components/ui/Feedback.jsx'
-import { Table } from '../../components/ui/Table.jsx'
+import { CellLines, Table } from '../../components/ui/Table.jsx'
 import { useAsync } from '../../hooks/useAsync.js'
 import { useNow, useRefresh } from '../../hooks/useNow.js'
 import { friendlyError } from '../../lib/errors.js'
@@ -48,9 +48,10 @@ export default function MentorShifts() {
 
   const columns = [
     { key: 'c', header: 'Candidate', render: (r) => <CandidateCell name={r.candidate.full_name} id={r.candidate.candidate_identifier} /> },
-    { key: 'sched', header: 'Scheduled', render: (r) => r.row ? `${formatTime(r.row.scheduled_start)}–${formatTime(r.row.scheduled_end)}` : scheduleRange(data.schedule, 'workday') },
-    { key: 'in', header: 'Clock in', render: (r) => formatTime(r.row?.check_in_at) },
-    { key: 'out', header: 'Clock out', render: (r) => formatTime(r.row?.check_out_at) },
+    { key: 'times', header: 'Clock in / out', render: (r) => (
+      <CellLines items={[['Actual', `${formatTime(r.row?.check_in_at)} – ${formatTime(r.row?.check_out_at)}`],
+        ['Scheduled', r.row ? `${formatTime(r.row.scheduled_start)}–${formatTime(r.row.scheduled_end)}` : scheduleRange(data.schedule, 'workday')]]} />
+    ) },
     { key: 'status', header: 'Status', render: (r) => (
       <span className="flex flex-wrap gap-1.5">
         <Badge tone={r.state.tone}>{r.state.label}</Badge>
@@ -58,10 +59,9 @@ export default function MentorShifts() {
       </span>
     ) },
     { key: 'net', header: 'Net work', render: (r) => formatMinutes(r.row?.net_minutes) },
-    { key: 'tea', header: 'Tea', render: (r) => formatMinutes(r.row?.tea_minutes) },
-    { key: 'lunch', header: 'Lunch', render: (r) => formatMinutes(r.row?.lunch_minutes) },
+    { key: 'breaks', header: 'Breaks', render: (r) => <CellLines items={[['Tea', formatMinutes(r.row?.tea_minutes)], ['Lunch', formatMinutes(r.row?.lunch_minutes)]]} /> },
     { key: 'flags', header: 'Exceptions', render: (r) => r.flags.length
-      ? <span className="flex max-w-64 flex-wrap gap-1">{r.flags.map((x) => <Badge key={x} tone="late">{x}</Badge>)}</span>
+      ? <span className="flex flex-wrap gap-1">{r.flags.map((x) => <Badge key={x} tone="late">{x}</Badge>)}</span>
       : <span className="text-xs text-muted">None</span> },
     { key: 'rep', header: 'Progress', render: (r) => !r.row ? '—' : r.row.report_submitted ? <Badge tone="approved">Submitted</Badge> : <Badge tone="missing">Not yet</Badge> },
     { key: 'go', header: <span className="sr-only">Open</span>, render: (r) => (
@@ -80,7 +80,7 @@ export default function MentorShifts() {
         </>} />
       {error ? <Card><ErrorState message={friendlyError(error)} onRetry={reload} /></Card> : (
         <div className="flex flex-col gap-6">
-          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
             <StatCard label="Clocked in" icon={Clock} loading={!data} value={data && `${count((r) => r.row)}/${day.length}`}
               caption={data ? `${count((r) => r.row?.shift_status === 'on_break')} on break now` : '…'} />
             <StatCard label="No clock-in" icon={UserX} tone="error" loading={!data} value={count((r) => !r.row && r.state.tone === 'rejected')}
@@ -106,7 +106,7 @@ export default function MentorShifts() {
                 action={f.active && <Button variant="secondary" size="s" onClick={f.clear}>Clear filters</Button>} />
             ) : (
               <div className={loading ? 'opacity-60' : ''} aria-busy={loading}>
-                <Table columns={columns} rows={rows} caption="Shifts for the selected date" />
+                <Table columns={columns} rows={rows} caption="Shifts for the selected date" minWidth={880} />
               </div>
             )}
           </Card>

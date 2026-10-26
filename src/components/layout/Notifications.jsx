@@ -34,7 +34,7 @@ export default function Notifications() {
         {unread > 0 && <span className="absolute top-2 right-2 size-2 rounded-full bg-salmon ring-2 ring-white" aria-hidden />}
       </button>
       {open && (
-        <div className="absolute right-0 z-40 mt-2 w-[min(360px,calc(100vw-2rem))] rounded-xl border border-line bg-white p-2 shadow-pop">
+        <div className="fixed inset-x-4 top-[72px] z-40 rounded-xl border border-line bg-white p-2 shadow-pop sm:absolute sm:inset-x-auto sm:top-auto sm:right-0 sm:mt-2 sm:w-[360px]">
           <p className="label-caps px-3 py-2">Notifications</p>
           {items.length === 0 ? (
             <p className="px-3 py-6 text-center text-xs text-muted">You're all caught up.</p>

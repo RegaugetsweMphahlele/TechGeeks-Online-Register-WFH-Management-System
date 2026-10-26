@@ -15,7 +15,7 @@ export function CandidateCell({ name, id }) {
     <span className="flex items-center gap-2.5">
       <Avatar name={name} />
       <span className="min-w-0">
-        <span className="block truncate font-medium">{name}</span>
+        <span className="block font-medium wrap-break-word">{name}</span>
         {id && <span className="block text-xs text-muted">{id}</span>}
       </span>
     </span>
@@ -33,7 +33,7 @@ export default function AttendanceTable({ rows, showCandidate }) {
     {
       key: 'mode', header: 'Status',
       render: (r) => (
-        <span className="flex items-center gap-1.5">
+        <span className="flex flex-wrap items-center gap-1.5">
           <ModeBadge mode={r.work_mode} />
           {r.work_mode === 'wfh' && (r.wfh_approved
             ? <CheckCircle2 className="size-4 text-success" aria-label="WFH approved" />
@@ -43,7 +43,7 @@ export default function AttendanceTable({ rows, showCandidate }) {
     },
     { key: 'reg', header: 'Register', render: (r) => { const s = registerStatus(r); return <Badge tone={s.tone}>{s.label}</Badge> } },
     { key: 'loc', header: 'Location', render: (r) => (
-      <div className="flex min-w-32 flex-col items-start gap-1">
+      <div className="flex flex-col items-start gap-1">
         <span>{r.location_address || r.location_note || '—'}</span>
         {r.location_latitude != null && <Button size="s" variant="ghost" icon={MapPin} onClick={() => setMapRecord(r)}>View map</Button>}
       </div>
@@ -51,7 +51,7 @@ export default function AttendanceTable({ rows, showCandidate }) {
   ].filter(Boolean)
   return (
     <>
-      <Table columns={columns} rows={rows} caption="Attendance records" />
+      <Table columns={columns} rows={rows} caption="Attendance records" minWidth={showCandidate ? 900 : 760} />
       <Modal open={Boolean(mapRecord)} onClose={() => setMapRecord(null)} title="Attendance location"
         description={mapRecord?.location_address || mapRecord?.location_note}>
         {mapRecord && <div className="flex flex-col gap-3">

@@ -72,7 +72,7 @@ function TodayCard({ today, todaysWfh }) {
         </div>
       </div>
       <span className="hidden h-[98px] w-px bg-line lg:block" aria-hidden />
-      <dl className="grid grid-cols-2 gap-x-8 gap-y-4 text-xs sm:grid-cols-4 lg:flex">
+      <dl className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-x-8 gap-y-4 text-xs lg:flex lg:flex-wrap">
         <div><dt className="mb-1 text-muted">Current status</dt><dd><ModeBadge mode={today.work_mode} /></dd></div>
         <div><dt className="mb-1 text-muted">Check-in time</dt><dd className="text-sm font-medium">{formatTime(today.check_in_at)}</dd></div>
         <div><dt className="mb-1 text-muted">Today's location</dt>
@@ -133,7 +133,7 @@ export default function CandidateDashboard() {
             <TodayCard today={data.today} todaysWfh={data.todaysWfh} />
           </>}
 
-          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
             <StatCard label="Today's Status" icon={CheckCircle2} tone="success" loading={!data}
               value={!data?.today ? 'Not registered' : data.today.check_out_at ? 'Checked out' : 'Checked in'}
               caption={data?.today ? `${data.today.work_mode === 'wfh' ? 'Working from home' : 'At the office'} since ${formatTime(data.today.check_in_at)}` : 'No register entry yet today'} />
@@ -143,7 +143,7 @@ export default function CandidateDashboard() {
               caption={`${formatMonth(today)}${data?.monthLate ? ` · ${data.monthLate} late check-in${data.monthLate > 1 ? 's' : ''}` : ''}`} />
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <Card aria-labelledby="recent-att">
               <CardHeader id="recent-att" title="Recent attendance" subtitle="Your last five register entries" actionTo="/candidate/attendance" />
               {!data ? <SkeletonRows /> : data.recent.length === 0 ? (

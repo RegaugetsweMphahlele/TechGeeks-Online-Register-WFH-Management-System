@@ -116,7 +116,7 @@ export function WfhRequestModal({ open, onClose, onSubmitted }) {
         <Textarea label="Additional details" required={form.reason === 'Other'} maxLength={1000} value={form.details}
           onChange={set('details')} error={errors.details} placeholder="Anything your Tech Champion should know" />
         <LocationCapture location={deviceLocation} onChange={setDeviceLocation} />
-        <div className="flex gap-3 [&>*]:flex-1">
+        <div className="flex flex-col-reverse gap-3 sm:flex-row [&>*]:flex-1">
           <Button variant="secondary" onClick={close}>Cancel</Button>
           <Button type="submit" icon={Send} loading={busy}>Submit request</Button>
         </div>
