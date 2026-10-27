@@ -4,7 +4,8 @@ import { useSearchParams } from 'react-router-dom'
 import { listMyCandidates } from '../../api/profiles.js'
 import { getSchedule, listProgress, listReviews, listShifts } from '../../api/shifts.js'
 import { CandidateCell } from '../../components/AttendanceTable.jsx'
-import { ExportButton } from '../../components/Filters.jsx'
+import CohortStreamFilters from '../../components/CohortStreamFilters.jsx'
+import { ExportButton, FilterBar, useUrlFilters } from '../../components/Filters.jsx'
 import { PageHeader } from '../../components/layout/AppLayout.jsx'
 import { ProgressReportView, ReviewForm, ReviewList } from '../../components/Shifts.jsx'
 import Badge from '../../components/ui/Badge.jsx'
@@ -15,6 +16,7 @@ import Modal from '../../components/ui/Modal.jsx'
 import { CellLines, Table } from '../../components/ui/Table.jsx'
 import { useAsync } from '../../hooks/useAsync.js'
 import { friendlyError } from '../../lib/errors.js'
+import { filterCandidates } from '../../lib/mentorFilters.js'
 import { WEEKLY_COLUMNS } from '../../lib/reports.js'
 import { expectedDays, formatMinutes, shiftFlags, weeklySummary } from '../../lib/shifts.js'
 import { addDays, formatDate, formatDay, sastToday, weekStart } from '../../lib/time.js'
@@ -28,7 +30,7 @@ async function load(week) {
   const rows = candidates.filter((c) => c.status === 'active').map((c) => {
     const mine = shifts.filter((s) => s.candidate_id === c.id)
     const notes = reviews.filter((r) => r.candidate_id === c.id)
-    return { id: c.id, full_name: c.full_name, candidate_identifier: c.candidate_identifier, week, shifts: mine, notes,
+    return { id: c.id, full_name: c.full_name, candidate_identifier: c.candidate_identifier, cohort: c.cohort, stream: c.stream, week, shifts: mine, notes,
       needsSupport: notes.some((n) => n.needs_support), ...weeklySummary(mine, days) }
   })
   return { rows, days }
@@ -72,10 +74,12 @@ function CandidateWeek({ row, week, onClose, onSaved }) {
 export default function WeeklyReview() {
   const [params, setParams] = useSearchParams()
   const week = weekStart(params.get('week') || sastToday())
+  const f = useUrlFilters(params, setParams, ['week', 'cohort', 'stream'])
   const { data, error, loading, reload } = useAsync(() => load(week), [week])
   const [open, setOpen] = useState(null)
-  const go = (n) => setParams({ week: addDays(week, n) }, { replace: true })
+  const go = (n) => f.set({ week: addDays(week, n) })
   const isCurrent = week === weekStart(sastToday())
+  const filteredRows = filterCandidates(data?.rows, f.filters)
 
   const columns = [
     { key: 'c', header: 'Candidate', render: (r) => (
@@ -97,13 +101,17 @@ export default function WeeklyReview() {
             <Button variant="secondary" size="s" onClick={() => go(-7)} aria-label="Previous week"><ChevronLeft className="size-4" /></Button>
             <Button variant="secondary" size="s" onClick={() => go(7)} disabled={isCurrent} aria-label="Next week"><ChevronRight className="size-4" /></Button>
           </div>
-          <ExportButton kind={`weekly-attendance_${week}`} filters={{}} fetchRows={async () => data?.rows ?? []} columns={WEEKLY_COLUMNS} />
+          <ExportButton kind={`weekly-attendance_${week}`} filters={f.filters} fetchRows={async () => filteredRows} columns={WEEKLY_COLUMNS} />
         </>} />
       <Card>
+        <FilterBar active={Boolean(f.filters.cohort || f.filters.stream)} onClear={() => f.set({ cohort: undefined, stream: undefined, week })}>
+          <CohortStreamFilters cohort={f.filters.cohort} stream={f.filters.stream}
+            onChange={(changes) => f.set({ ...changes, week })} />
+        </FilterBar>
         {error ? <ErrorState message={friendlyError(error)} onRetry={reload} /> : loading && !data ? <SkeletonRows rows={6} /> :
-          data.rows.length === 0 ? <EmptyState icon={CalendarRange} title="No candidates assigned" /> : (
+          filteredRows.length === 0 ? <EmptyState icon={CalendarRange} title={data?.rows.length && (f.filters.cohort || f.filters.stream) ? 'No candidates match these filters' : 'No candidates assigned'} /> : (
             <div className={loading ? 'opacity-60' : ''} aria-busy={loading}>
-              <Table columns={columns} rows={data.rows} caption="Weekly attendance summary" minWidth={820} />
+              <Table columns={columns} rows={filteredRows} caption="Weekly attendance summary" minWidth={920} />
               <p className="border-t border-line px-6 py-3 text-xs text-muted">
                 {data.days.length} expected working day{data.days.length === 1 ? '' : 's'} so far (weekdays; public holidays are not excluded).
                 Days without a clock-in count as missing, never as attended.

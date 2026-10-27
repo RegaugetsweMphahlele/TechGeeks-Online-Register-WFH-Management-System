@@ -17,12 +17,13 @@ export const checkIn = ({ workMode, location, notes, deviceLocation }) =>
 export const checkOut = () => run(db().rpc('check_out').single())
 
 /**
- * filters: { candidateId, search, from, to, mode: 'office'|'wfh', completion: 'open'|'complete', cohort }
+ * filters: { candidateId, candidateIds, search, from, to, mode: 'office'|'wfh', completion: 'open'|'complete', cohort }
  * RLS decides which candidates are visible; filters only narrow that set.
  */
 function filtered(f = {}, opts) {
   let q = db().from('attendance_overview').select('*', opts)
   if (f.candidateId) q = q.eq('candidate_id', f.candidateId)
+  if (f.candidateIds) q = q.in('candidate_id', f.candidateIds)
   if (f.from) q = q.gte('attendance_date', f.from)
   if (f.to) q = q.lte('attendance_date', f.to)
   if (f.mode) q = q.eq('work_mode', f.mode)
@@ -35,8 +36,9 @@ function filtered(f = {}, opts) {
 }
 
 export function listAttendance(filters, { page = 1, pageSize = 20 } = {}) {
+  if (filters?.candidateIds?.length === 0) return Promise.resolve({ data: [], count: 0 })
   const from = (page - 1) * pageSize
   return run(filtered(filters, { count: 'exact' }).range(from, from + pageSize - 1))
 }
 
-export const exportAttendance = (filters) => fetchAll(() => filtered(filters))
+export const exportAttendance = (filters) => filters?.candidateIds?.length === 0 ? Promise.resolve([]) : fetchAll(() => filtered(filters))

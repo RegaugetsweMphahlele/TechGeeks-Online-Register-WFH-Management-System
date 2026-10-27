@@ -1,12 +1,14 @@
 import { BellRing, CheckCircle2, ChevronRight, ClipboardCheck, Inbox, Laptop, Users, XCircle } from 'lucide-react'
 import { useState } from 'react'
-import { Link, useOutletContext } from 'react-router-dom'
+import { Link, useOutletContext, useSearchParams } from 'react-router-dom'
 import { listAttendance } from '../../api/attendance.js'
 import { listMyCandidates } from '../../api/profiles.js'
 import { getSchedule, listShifts } from '../../api/shifts.js'
 import { countByStatus, listWfh } from '../../api/wfh.js'
 import { useAuth } from '../../auth/AuthProvider.jsx'
 import { CandidateCell } from '../../components/AttendanceTable.jsx'
+import CohortStreamFilters from '../../components/CohortStreamFilters.jsx'
+import { FilterBar, useUrlFilters } from '../../components/Filters.jsx'
 import { PageHeader } from '../../components/layout/AppLayout.jsx'
 import ReviewModal from '../../components/ReviewModal.jsx'
 import Badge, { ModeBadge, StatusBadge } from '../../components/ui/Badge.jsx'
@@ -17,17 +19,21 @@ import { useAsync } from '../../hooks/useAsync.js'
 import { registerStatus } from '../../lib/attendance.js'
 import { friendlyError } from '../../lib/errors.js'
 import { buildDay } from '../../lib/shifts.js'
+import { candidateIdsForFilters, filterCandidates } from '../../lib/mentorFilters.js'
 import { addDays, formatDate, formatDay, formatDayLong, formatFullDate, formatMonth, formatTime, greeting, monthBounds, sastToday } from '../../lib/time.js'
 
-async function load() {
+async function load(filters) {
   const today = sastToday()
-  const [candidates, todayAtt, pending, month, schedule, recent] = await Promise.all([
-    listMyCandidates(),
-    listAttendance({ from: today, to: today }, { pageSize: 500 }),
-    listWfh({ status: 'pending' }, { pageSize: 5 }),
-    countByStatus(monthBounds(today)),
+  const allCandidates = await listMyCandidates()
+  const candidates = filterCandidates(allCandidates, filters)
+  const candidateIds = candidateIdsForFilters(allCandidates, filters)
+  const scopedIds = candidateIds ?? candidates.map((candidate) => candidate.id)
+  const [todayAtt, pending, month, schedule, recent] = await Promise.all([
+    listAttendance({ from: today, to: today, candidateIds: scopedIds }, { pageSize: 500 }),
+    listWfh({ status: 'pending', candidateIds: scopedIds }, { pageSize: 5 }),
+    countByStatus({ ...monthBounds(today), candidateIds: scopedIds }),
     getSchedule(),
-    listShifts({ from: addDays(today, -7), to: addDays(today, -1) }),
+    listShifts({ from: addDays(today, -7), to: addDays(today, -1), candidateIds: scopedIds }),
   ])
   // Today's live exceptions, plus earlier shifts nobody has closed (forgotten clock-out / open break).
   const alerts = [
@@ -42,6 +48,7 @@ async function load() {
   const rank = (r) => (!r.rec ? 0 : !r.rec.check_out_at ? 1 : 2)
   register.sort((a, b) => rank(a) - rank(b) || a.full_name.localeCompare(b.full_name))
   return {
+    allCandidates,
     candidates: register,
     checkedIn: todayAtt.count,
     notIn: register.filter((r) => !r.rec).length,
@@ -57,7 +64,9 @@ async function load() {
 export default function MentorDashboard() {
   const { profile } = useAuth()
   const { refreshPending } = useOutletContext()
-  const { data, error, reload } = useAsync(load, [])
+  const [params, setParams] = useSearchParams()
+  const f = useUrlFilters(params, setParams, ['cohort', 'stream'])
+  const { data, error, reload } = useAsync(() => load(f.filters), [params.toString()])
   const [reviewing, setReviewing] = useState(null)
   const today = sastToday()
   const monthName = formatMonth(today)
@@ -69,6 +78,9 @@ export default function MentorDashboard() {
           <Button variant="secondary" icon={ClipboardCheck} to="/mentor/attendance">Attendance</Button>
           <Button icon={Laptop} to="/mentor/wfh?status=pending">Review requests</Button>
         </>} />
+      <FilterBar active={f.active} onClear={f.clear}>
+        <CohortStreamFilters cohort={f.filters.cohort} stream={f.filters.stream} onChange={f.set} />
+      </FilterBar>
       {error ? <Card><ErrorState message={friendlyError(error)} onRetry={reload} /></Card> : (
         <div className="flex flex-col gap-6">
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">

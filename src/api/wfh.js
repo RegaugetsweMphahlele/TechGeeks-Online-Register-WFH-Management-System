@@ -13,10 +13,11 @@ export const submitWfh = ({ date, reason, details, deviceLocation }) =>
 export const decideWfh = (id, decision, comment) =>
   run(db().rpc('decide_wfh_request', { p_id: id, p_decision: decision, p_comment: comment || null }).single())
 
-/** filters: { candidateId, search, status, from, to (requested date), submittedFrom, submittedTo, cohort } */
+/** filters: { candidateId, candidateIds, search, status, from, to (requested date), submittedFrom, submittedTo, cohort } */
 function filtered(f = {}, opts) {
   let q = db().from('wfh_overview').select('*', opts)
   if (f.candidateId) q = q.eq('candidate_id', f.candidateId)
+  if (f.candidateIds) q = q.in('candidate_id', f.candidateIds)
   if (f.status) q = q.eq('status', f.status)
   if (f.from) q = q.gte('requested_date', f.from)
   if (f.to) q = q.lte('requested_date', f.to)
@@ -32,13 +33,15 @@ function filtered(f = {}, opts) {
 }
 
 export function listWfh(filters, { page = 1, pageSize = 20 } = {}) {
+  if (filters?.candidateIds?.length === 0) return Promise.resolve({ data: [], count: 0 })
   const from = (page - 1) * pageSize
   return run(filtered(filters, { count: 'exact' }).range(from, from + pageSize - 1))
 }
 
-export const exportWfh = (filters) => fetchAll(() => filtered(filters))
+export const exportWfh = (filters) => filters?.candidateIds?.length === 0 ? Promise.resolve([]) : fetchAll(() => filtered(filters))
 
 export async function countByStatus(filters = {}) {
+  if (filters.candidateIds?.length === 0) return { pending: 0, approved: 0, rejected: 0 }
   const counts = await Promise.all(
     ['pending', 'approved', 'rejected'].map((status) =>
       run(filtered({ ...filters, status }, { count: 'exact', head: true })).then((r) => r.count),

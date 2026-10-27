@@ -2,6 +2,8 @@ import { Inbox } from 'lucide-react'
 import { useState } from 'react'
 import { useOutletContext, useSearchParams } from 'react-router-dom'
 import { exportWfh, listWfh } from '../../api/wfh.js'
+import { listMyCandidates } from '../../api/profiles.js'
+import CohortStreamFilters from '../../components/CohortStreamFilters.jsx'
 import { DateRange, ExportButton, FilterBar, FilterSelect, SearchField, useUrlFilters } from '../../components/Filters.jsx'
 import { PageHeader } from '../../components/layout/AppLayout.jsx'
 import ReviewModal from '../../components/ReviewModal.jsx'
@@ -12,6 +14,7 @@ import { WfhTable } from '../../components/Wfh.jsx'
 import { useAsync } from '../../hooks/useAsync.js'
 import { friendlyError } from '../../lib/errors.js'
 import { WFH_COLUMNS } from '../../lib/reports.js'
+import { candidateIdsForFilters } from '../../lib/mentorFilters.js'
 import { STATUS_OPTIONS } from '../candidate/WfhRequests.jsx'
 
 const PAGE_SIZE = 25
@@ -19,15 +22,18 @@ const PAGE_SIZE = 25
 export default function MentorWfhRequests() {
   const { refreshPending } = useOutletContext()
   const [params, setParams] = useSearchParams()
-  const f = useUrlFilters(params, setParams, ['search', 'status', 'from', 'to', 'submittedFrom', 'submittedTo'])
-  const { data, error, loading, reload } = useAsync(() => listWfh(f.filters, { page: f.page, pageSize: PAGE_SIZE }), [params.toString()])
+  const f = useUrlFilters(params, setParams, ['search', 'status', 'from', 'to', 'submittedFrom', 'submittedTo', 'cohort', 'stream'])
+  const { data: candidateData } = useAsync(listMyCandidates, [])
+  const candidates = candidateData ?? []
+  const filters = { ...f.filters, candidateIds: candidateIdsForFilters(candidates, f.filters) }
+  const { data, error, loading, reload } = useAsync(() => listWfh(filters, { page: f.page, pageSize: PAGE_SIZE }), [params.toString(), candidateData])
   const [reviewing, setReviewing] = useState(null)
   const pendingOnly = f.filters.status === 'pending'
 
   return (
     <>
       <PageHeader title="WFH requests" subtitle="Review and track work-from-home requests from your candidates."
-        actions={<ExportButton kind="wfh-requests" filters={f.filters} fetchRows={exportWfh} columns={WFH_COLUMNS} />} />
+        actions={<ExportButton kind="wfh-requests" filters={filters} fetchRows={exportWfh} columns={WFH_COLUMNS} />} />
       <Card>
         <div className="flex gap-1 border-b border-line px-4 pt-3 sm:px-6" role="tablist" aria-label="Request view">
           {[['pending', 'Pending'], [undefined, 'All requests']].map(([status, label]) => {
@@ -40,13 +46,14 @@ export default function MentorWfhRequests() {
             )
           })}
         </div>
-        <FilterBar active={['search', 'from', 'to', 'submittedFrom', 'submittedTo'].some((k) => f.filters[k]) || (f.filters.status && !pendingOnly)}
-          onClear={() => f.set({ search: undefined, from: undefined, to: undefined, submittedFrom: undefined, submittedTo: undefined, status: pendingOnly ? 'pending' : undefined })}>
+        <FilterBar active={['search', 'from', 'to', 'submittedFrom', 'submittedTo', 'cohort', 'stream'].some((k) => f.filters[k]) || (f.filters.status && !pendingOnly)}
+          onClear={() => f.set({ search: undefined, from: undefined, to: undefined, submittedFrom: undefined, submittedTo: undefined, cohort: undefined, stream: undefined, status: pendingOnly ? 'pending' : undefined })}>
           <SearchField value={f.filters.search} onChange={(search) => f.set({ search })} />
           {!pendingOnly && <FilterSelect label="Status" value={f.filters.status} onChange={(status) => f.set({ status })} options={STATUS_OPTIONS} />}
           <DateRange label="Requested" from={f.filters.from} to={f.filters.to} onChange={f.set} />
           <DateRange label="Submitted" from={f.filters.submittedFrom} to={f.filters.submittedTo}
             onChange={({ from, to }) => f.set({ submittedFrom: from, submittedTo: to })} />
+          <CohortStreamFilters cohort={f.filters.cohort} stream={f.filters.stream} onChange={f.set} />
         </FilterBar>
         {error ? <ErrorState message={friendlyError(error)} onRetry={reload} /> : loading && !data ? <SkeletonRows rows={6} /> :
           data.data.length === 0 ? (
