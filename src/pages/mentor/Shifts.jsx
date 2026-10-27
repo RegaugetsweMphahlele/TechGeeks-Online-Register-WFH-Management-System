@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { listMyCandidates } from '../../api/profiles.js'
 import { getSchedule, listShifts } from '../../api/shifts.js'
 import { CandidateCell } from '../../components/AttendanceTable.jsx'
+import CohortStreamFilters from '../../components/CohortStreamFilters.jsx'
 import { ExportButton, FilterBar, FilterSelect, useUrlFilters } from '../../components/Filters.jsx'
 import { PageHeader } from '../../components/layout/AppLayout.jsx'
 import Badge from '../../components/ui/Badge.jsx'
@@ -15,6 +16,7 @@ import { useNow, useRefresh } from '../../hooks/useNow.js'
 import { friendlyError } from '../../lib/errors.js'
 import { SHIFT_COLUMNS } from '../../lib/reports.js'
 import { BREAK_FLAGS, buildDay, formatMinutes, punctuality, scheduleRange } from '../../lib/shifts.js'
+import { filterCandidates } from '../../lib/mentorFilters.js'
 import { formatFullDate, formatTime, isWeekend, sastToday } from '../../lib/time.js'
 
 const STATUS_OPTIONS = [['working', 'Working'], ['on_break', 'On break'], ['clocked_out', 'Clocked out'], ['incomplete', 'Incomplete'], ['absent', 'No clock-in']]
@@ -29,7 +31,7 @@ const FLAG_TEST = {
 
 export default function MentorShifts() {
   const [params, setParams] = useSearchParams()
-  const f = useUrlFilters(params, setParams, ['date', 'candidate', 'status', 'flag'])
+  const f = useUrlFilters(params, setParams, ['date', 'candidate', 'status', 'flag', 'cohort', 'stream'])
   const date = f.filters.date ?? sastToday()
   const now = useNow(60000)
   const { data, error, loading, reload } = useAsync(
@@ -39,7 +41,8 @@ export default function MentorShifts() {
   )
   useRefresh(reload, 60000)
 
-  const day = data ? buildDay(data.candidates, data.shifts, { date, schedule: data.schedule, now }) : []
+  const candidates = filterCandidates(data?.candidates, f.filters)
+  const day = data ? buildDay(candidates, data.shifts, { date, schedule: data.schedule, now }) : []
   const rows = day.filter((r) =>
     (!f.filters.candidate || r.id === f.filters.candidate) &&
     (!f.filters.status || (f.filters.status === 'absent' ? !r.row : r.row?.shift_status === f.filters.status)) &&
@@ -97,7 +100,9 @@ export default function MentorShifts() {
                   className="h-11 w-full rounded-lg border border-line-strong bg-white px-3 text-sm focus:border-[1.5px] focus:border-purple focus:ring-3 focus:ring-purple/15 focus:outline-none" />
               </label>
               <FilterSelect label="Candidate" value={f.filters.candidate} onChange={(candidate) => f.set({ candidate })}
-                options={(data?.candidates ?? []).map((c) => [c.id, c.full_name])} />
+                options={candidates.map((c) => [c.id, c.full_name])} />
+              <CohortStreamFilters cohort={f.filters.cohort} stream={f.filters.stream}
+                onChange={(changes) => f.set({ ...changes, candidate: undefined })} />
               <FilterSelect label="Status" value={f.filters.status} onChange={(status) => f.set({ status })} options={STATUS_OPTIONS} />
               <FilterSelect label="Exception" value={f.filters.flag} onChange={(flag) => f.set({ flag })} options={FLAG_OPTIONS} />
             </FilterBar>

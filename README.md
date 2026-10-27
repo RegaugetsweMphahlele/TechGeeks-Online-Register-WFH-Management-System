@@ -40,7 +40,7 @@ Known limitations: public holidays are not excluded from expected working days. 
 
 Use Node.js 20 or newer. Install dependencies with `npm install`, copy `.env.example` to `.env`, and set the Supabase project URL and publishable key. Start the app with `npm run dev` and open the local URL printed by Vite.
 
-Apply all SQL files in `supabase/migrations` to the Supabase project in filename order (or use `supabase db push` from a linked Supabase CLI project) before testing attendance and WFH workflows. The live-location migration adds coordinate/address fields and updates the authenticated RPC functions. The shifts migration (`20261026000000_shifts.sql`) adds the schedule, breaks, corrections, reviews and progress updates. Run `npm test` to exercise all migrations and RLS policies locally on PGlite.
+Apply all SQL files in `supabase/migrations` to the Supabase project in filename order (or use `supabase db push` from a linked Supabase CLI project) before testing attendance and WFH workflows. The live-location migration adds coordinate/address fields and updates the authenticated RPC functions. The shifts migration (`20261026000000_shifts.sql`) adds the schedule, breaks, corrections, reviews and progress updates. The candidate stream migration adds the profile field used by mentor cohort/stream filters. Use the Candidate Learning Progress cohort names (`Demand 1`, `Data`, `Computer Centre`, `Marketing`, `Clickatell`) for live candidate profiles; for `Demand 1`, assign one of the three stream names shown in that page. Run `npm test` to exercise all migrations and RLS policies locally on PGlite.
 
 ## Location Privacy
 

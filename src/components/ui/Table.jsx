@@ -8,7 +8,7 @@ const isAction = (c) => typeof c.header !== 'string' // sr-only headers mark but
  * `minWidth` wide; below that each row becomes a card (first column as the title, the rest as labelled fields,
  * actions last), so nothing needs horizontal scrolling. The choice follows the container, not the viewport.
  */
-export function Table({ columns, rows, rowKey = 'id', onRowClick, caption, minWidth = columns.length * 120 }) {
+export function Table({ columns, rows, rowKey = 'id', onRowClick, caption, minWidth = columns.length * 120, tableClassName = '' }) {
   const ref = useRef(null)
   const [stacked, setStacked] = useState(false)
   useLayoutEffect(() => {
@@ -46,11 +46,11 @@ export function Table({ columns, rows, rowKey = 'id', onRowClick, caption, minWi
           ))}
         </ul>
       ) : (
-        <table className="w-full text-left">
+        <table className={`w-full text-left ${tableClassName}`}>
           {caption && <caption className="sr-only">{caption}</caption>}
           <thead className="bg-bg">
             {/* `relative` keeps sr-only headers inside the table instead of widening the page */}
-            <tr>{columns.map((c) => <th key={c.key} scope="col" className={`label-caps relative px-3 py-3 align-bottom first:pl-6 last:pr-6 ${c.className ?? ''}`}>{c.header}</th>)}</tr>
+            <tr>{columns.map((c) => <th key={c.key} scope="col" style={c.width ? { width: c.width } : undefined} className={`label-caps relative px-3 py-3 align-bottom first:pl-6 last:pr-6 ${c.className ?? ''}`}>{c.header}</th>)}</tr>
           </thead>
           <tbody>
             {rows.map((r) => (
@@ -59,7 +59,7 @@ export function Table({ columns, rows, rowKey = 'id', onRowClick, caption, minWi
                 className={`border-t border-line ${onRowClick ? 'cursor-pointer hover:bg-bg focus-within:bg-bg' : ''}`}
                 onClick={onRowClick && (() => onRowClick(r))}
               >
-                {columns.map((c) => <td key={c.key} className={`px-3 py-3 align-middle first:pl-6 last:pr-6 [&_[data-line]]:flex-nowrap ${c.className ?? ''}`}>{cell(c, r)}</td>)}
+                {columns.map((c) => <td key={c.key} style={c.width ? { width: c.width } : undefined} className={`px-3 py-3 align-middle first:pl-6 last:pr-6 [&_[data-line]]:flex-nowrap ${c.className ?? ''}`}>{cell(c, r)}</td>)}
               </tr>
             ))}
           </tbody>

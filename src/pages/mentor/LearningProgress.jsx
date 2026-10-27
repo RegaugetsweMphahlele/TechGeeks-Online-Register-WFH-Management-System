@@ -81,22 +81,22 @@ export default function LearningProgress() {
 
   const columns = [
     { key: 'name', header: 'Candidate', render: (candidate) => (
-      <div className="min-w-40"><p className="font-medium">{candidate.name}</p><p className="mt-0.5 font-mono text-xs text-muted">{candidate.id}</p></div>
-    ) },
-    { key: 'cohort', header: 'Cohort', render: (candidate) => candidate.cohort },
-    ...(cohort === 'Demand 1' ? [{ key: 'stream', header: 'Stream', render: (candidate) => candidate.stream }] : []),
+      <div className="min-w-0"><p className="font-medium">{candidate.name}</p><p className="mt-0.5 break-all font-mono text-xs text-muted">{candidate.id}</p></div>
+    ), width: cohort === 'Demand 1' ? '155px' : '165px' },
+    { key: 'cohort', header: 'Cohort', render: (candidate) => <span className="block wrap-anywhere">{candidate.cohort}</span>, width: '115px' },
+    ...(cohort === 'Demand 1' ? [{ key: 'stream', header: 'Stream', render: (candidate) => <span className="block wrap-anywhere">{candidate.stream}</span>, width: '145px' }] : []),
     { key: 'current', header: 'Current Course', render: (candidate) => {
       const course = currentCourse(candidate)
       const index = course ? candidate.courses.indexOf(course) : -1
-      return <div className="min-w-52"><p className="max-w-64 text-sm font-medium">{course?.title ?? 'Learning path complete'}</p><p className="mt-1 text-xs text-muted">{course ? `Course ${index + 1} of ${candidate.courses.length}` : 'All courses completed'}</p></div>
-    } },
-    { key: 'progress', header: 'Progress', render: (candidate) => <ProgressBar value={candidateProgress(candidate)} /> },
-    { key: 'courses', header: 'Courses Completed', render: (candidate) => <span className="whitespace-nowrap">{completedCourseCount(candidate)} / {candidate.courses.length}</span> },
-    { key: 'activity', header: 'Last Activity', render: (candidate) => <span className="whitespace-nowrap">{formatDate(latestActivity(candidate))}</span> },
-    { key: 'status', header: 'Status', render: (candidate) => <LearningStatus value={candidateStatus(candidate)} /> },
+      return <div className="min-w-0"><p className="text-sm font-medium wrap-anywhere">{course?.title ?? 'Learning path complete'}</p><p className="mt-1 text-xs text-muted">{course ? `Course ${index + 1} of ${candidate.courses.length}` : 'All courses completed'}</p></div>
+    }, width: '220px' },
+    { key: 'progress', header: 'Progress', render: (candidate) => <ProgressBar value={candidateProgress(candidate)} />, width: '155px' },
+    { key: 'courses', header: 'Courses Completed', render: (candidate) => <span className="whitespace-nowrap">{completedCourseCount(candidate)} / {candidate.courses.length}</span>, width: '135px' },
+    { key: 'activity', header: 'Last Activity', render: (candidate) => <span className="whitespace-nowrap">{formatDate(latestActivity(candidate))}</span>, width: '145px' },
+    { key: 'status', header: 'Status', render: (candidate) => <LearningStatus value={candidateStatus(candidate)} />, width: '135px' },
     { key: 'action', header: <span className="sr-only">Action</span>, render: (candidate) => (
       <Button size="s" variant="secondary" onClick={() => navigate(`/mentor/learning/${candidate.id}?cohort=${encodeURIComponent(cohort)}&stream=${encodeURIComponent(stream)}`)}>View Progress</Button>
-    ) },
+    ), width: '145px' },
   ]
 
   return (
@@ -141,7 +141,7 @@ export default function LearningProgress() {
           </select>
           <span className="text-sm text-muted">{visibleCandidates.length} candidates</span>
         </div>
-        {visibleCandidates.length ? <Table columns={columns} rows={visibleCandidates} caption={`${stream} candidate learning progress`} minWidth={1260} /> : (
+        {visibleCandidates.length ? <Table columns={columns} rows={visibleCandidates} caption={`${stream} candidate learning progress`} minWidth={cohort === 'Demand 1' ? 1450 : 1305} tableClassName="table-fixed" /> : (
           <p className="p-8 text-center text-sm text-muted">No candidates match these filters.</p>
         )}
       </Card>

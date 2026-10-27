@@ -8,10 +8,12 @@ export const startBreak = (type) => run(db().rpc('start_break', { p_type: type }
 export const endBreak = () => run(db().rpc('end_break').single())
 
 /** Every shift in a date range; RLS limits it to the caller's own or assigned candidates. */
-export const listShifts = ({ candidateId, from, to }) =>
+export const listShifts = ({ candidateId, candidateIds, from, to }) =>
+  candidateIds?.length === 0 ? Promise.resolve([]) :
   fetchAll(() => {
     let q = db().from('attendance_overview').select('*')
     if (candidateId) q = q.eq('candidate_id', candidateId)
+    if (candidateIds) q = q.in('candidate_id', candidateIds)
     if (from) q = q.gte('attendance_date', from)
     if (to) q = q.lte('attendance_date', to)
     return q.order('attendance_date', { ascending: false }).order('full_name')
