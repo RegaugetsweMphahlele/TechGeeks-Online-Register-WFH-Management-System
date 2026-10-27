@@ -18,6 +18,9 @@ import ShiftDetail from './pages/mentor/ShiftDetail.jsx'
 import WeeklyReview from './pages/mentor/WeeklyReview.jsx'
 import Profile from './pages/Profile.jsx'
 import { NotFound, Unauthorized } from './pages/StatusPages.jsx'
+import Learning from './pages/candidate/Learning.jsx'
+import MentorLearningProgress from './pages/mentor/LearningProgress.jsx'
+import MentorCandidateLearningProgress from './pages/mentor/CandidateLearningProgress.jsx'
 
 function Home() {
   const { session, profile, loading, recovery } = useAuth()
@@ -43,6 +46,7 @@ export default function App() {
           <Route path="attendance" element={<MyAttendance />} />
           <Route path="wfh" element={<MyWfh />} />
           <Route path="profile" element={<Profile />} />
+          <Route path="learning" element={<Learning />} />
         </Route>
       </Route>
 
@@ -56,6 +60,8 @@ export default function App() {
           <Route path="wfh" element={<MentorWfh />} />
           <Route path="candidates" element={<Candidates />} />
           <Route path="profile" element={<Profile />} />
+          <Route path="learning/:candidateId" element={<MentorCandidateLearningProgress />} />
+          <Route path="learning" element={<MentorLearningProgress />} />
         </Route>
       </Route>
 
