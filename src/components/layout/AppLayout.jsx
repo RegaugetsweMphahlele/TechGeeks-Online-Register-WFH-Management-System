@@ -1,4 +1,4 @@
-import { CalendarCheck, CalendarDays, ChevronRight, ClipboardCheck, History, House, Laptop, LogOut, Menu, Timer, User, Users, X } from 'lucide-react'
+import { BookOpen, CalendarCheck, CalendarDays, ChevronRight, ClipboardCheck, History, House, Laptop, LogOut, Menu, Timer, User, Users, X } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { countByStatus } from '../../api/wfh.js'
@@ -17,6 +17,7 @@ const NAV = {
       { to: '/candidate/register', label: 'Register Attendance', icon: ClipboardCheck },
       { to: '/candidate/attendance', label: 'Attendance History', icon: History },
       { to: '/candidate/wfh', label: 'WFH Requests', icon: Laptop },
+      { to: '/candidate/learning', label: 'Candidate Learning Progress', icon: BookOpen },
       { to: '/candidate/profile', label: 'Profile', icon: User },
     ],
   },
@@ -29,6 +30,7 @@ const NAV = {
       { to: '/mentor/attendance', label: 'Attendance', icon: ClipboardCheck },
       { to: '/mentor/wfh', label: 'WFH Requests', icon: Laptop, badge: 'pending' },
       { to: '/mentor/candidates', label: 'Candidates', icon: Users },
+      { to: '/mentor/learning', label: 'Candidate Learning Progress', icon: BookOpen },
       { to: '/mentor/profile', label: 'Profile', icon: User },
     ],
   },
